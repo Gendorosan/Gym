@@ -254,7 +254,7 @@ def create_day():
             day_id = 0 if row[0] is None else int(row[0]) + 1
         print(day_id)
         database_cursor.execute(
-            f"insert into week (id, number, week_id) values ('{day_id}', '{data['number']}', '{data['week_id']}')")
+            f"insert into day (id, number, week_id) values ('{day_id}', '{data['number']}', '{data['week_id']}')")
         database.commit()
         return_answer = {'answer': 'success'}
         return jsonify(return_answer)
@@ -283,14 +283,62 @@ def create_exercise():
         print(request.get_json())
         data = request.get_json()
         database_cursor.execute("select max(id) from exercise")
+        exercise_id = 0
+        for row in database_cursor:
+            exercise_id = 0 if row[0] is None else int(row[0]) + 1
+        print(exercise_id)
+        database_cursor.execute(
+            f"insert into exercise (id, name, day_id, weight, reps, sets) values"
+            f" ({exercise_id}', '{data['name']}', {data['day_id']}, {data['weight']}, {data['reps']}, {data['sets']})")
+        database.commit()
+        return_answer = {'answer': 'success'}
+        return jsonify(return_answer)
+    except SyntaxError:
+        return_answer = {'answer': 'fail'}
+        return jsonify(return_answer)
+
+
+@app.route('/create_exercises', methods=['POST'])
+def create_exercises():
+    try:
+        print(request.get_json())
+        data = request.get_json()
+        database_cursor.execute(f"select max(id) from stage where person_login = '{data['login']}'"
+                                f" and status = 'Не пройден'")
+        stage_id = 0
+        for row in database_cursor:
+            stage_id = 0 if row[0] is None else int(row[0])
+
+        database_cursor.execute(f"select max(id) from week where stage_id = '{stage_id}'")
+        week_id = 0
+        for row in database_cursor:
+            week_id = 0 if row[0] is None else int(row[0])
+
+        database_cursor.execute("select max(id) from day")
         day_id = 0
         for row in database_cursor:
             day_id = 0 if row[0] is None else int(row[0]) + 1
-        print(day_id)
+
+        database_cursor.execute(f"select max(number) from day where week_id = {week_id}")
+        number = 0
+        for row in database_cursor:
+            number = 0 if row[0] is None else int(row[0]) + 1
+
         database_cursor.execute(
-            f"insert into exercise (id, name, day_id, weight, reps, sets) values"
-            f" ({day_id}', '{data['name']}', {data['day_id']}, {data['weight']}, {data['reps']}, {data['sets']})")
+            f"insert into day (id, number, week_id) values ('{day_id}', '{number}', '{week_id}')")
         database.commit()
+
+        database_cursor.execute("select max(id) from exercise")
+        exercise_id = 0
+        for row in database_cursor:
+            exercise_id = 0 if row[0] is None else int(row[0]) + 1
+
+        for i in range(len(data['exercises'])):
+            database_cursor.execute(
+                f"insert into exercise (id, name, day_id, weight, reps, sets) values"
+                f" ({exercise_id + i}, '{data['exercises'][i]['name']}', {day_id}, '{data['exercises'][i]['weight']}', "
+                f"'{data['exercises'][i]['reps']}', '{data['exercises'][i]['sets']}')")
+            database.commit()
         return_answer = {'answer': 'success'}
         return jsonify(return_answer)
     except SyntaxError:
