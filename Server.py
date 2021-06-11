@@ -216,7 +216,7 @@ def create_stage():
             for row in database_cursor:
                 week_id = 0 if row[0] is None else int(row[0]) + 1
             database_cursor.execute(
-                f"insert into week (id, number, stage_id) values ('{week_id}', '{week_key}', '{stage_id}')")
+                f"insert into week (id, number, stage_id) values ('{week_id}', '{int(week_key)}', '{stage_id}')")
             database.commit()
             for day_key in data["weeks"][week_key]["days"]:
                 print(f"day_key = {day_key}")
@@ -225,7 +225,7 @@ def create_stage():
                 for row in database_cursor:
                     day_id = 0 if row[0] is None else int(row[0]) + 1
                 database_cursor.execute(
-                    f"insert into day (id, number, week_id) values ('{day_id}', '{day_key}', '{week_id}')")
+                    f"insert into day (id, number, week_id) values ('{day_id}', '{int(day_key)}', '{week_id}')")
                 database.commit()
                 for i in range(len(data["weeks"][week_key]["days"][day_key]["exercises"])):
                     print(f"exercise = {i}")
@@ -236,9 +236,9 @@ def create_stage():
                         exercise_id = 0 if row[0] is None else int(row[0]) + 1
                     database_cursor.execute(
                         f"insert into exercise (id, name, day_id, weight, reps, sets) values"
-                        f" ({exercise_id + i}, '{exercises[i]['name']}', {day_id},"
-                        f" '{exercises[i]['weight']}', "
-                        f"'{exercises[i]['reps']}', '{exercises[i]['sets']}')")
+                        f" ({int(exercise_id + i)}, '{exercises[f'{i}']['name']}', {day_id},"
+                        f" '{exercises[f'{i}']['weight']}', "
+                        f"'{exercises[f'{i}']['reps']}', '{exercises[f'{i}']['sets']}')")
                     database.commit()
         return_answer = {'answer': 'success'}
         return jsonify(return_answer)
@@ -286,6 +286,11 @@ def delete_week():
     try:
         print(request.get_json())
         data = request.get_json()
+        database_cursor.execute(f"delete from exercise where day_id = "
+                                f"(select id from day where week_id = {data['week_id']}) and id > -1")
+        database.commit()
+        database_cursor.execute(f"delete from day where week_id = '{data['week_id']}'")
+        database.commit()
         database_cursor.execute(f"delete from week where id = '{data['week_id']}'")
         database.commit()
         return_answer = {'answer': 'success'}
@@ -320,6 +325,8 @@ def delete_day():
     try:
         print(request.get_json())
         data = request.get_json()
+        database_cursor.execute(f"delete from exercise where day_id = '{data['day_id']}'")
+        database.commit()
         database_cursor.execute(f"delete from day where id = '{data['day_id']}'")
         database.commit()
         return_answer = {'answer': 'success'}
